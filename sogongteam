@@ -1,0 +1,942 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<Windows.h>
+#include<conio.h>
+
+#include "SE.h"
+
+/* 연락처가 비어있는지 검사하는 함수 */
+int isEmpty()
+{
+  if( head == NULL )
+		return TRUE;
+	else return FALSE;
+}
+
+/* 메모리의 동적 할당을 담당하는 함수. 성공할 때 할당된 Node의 주소를 리턴하고 실패하면 NULL 포인터 리턴 */
+Node *isFull()
+{
+	Node *p = (Node*)malloc(sizeof(Node));
+	if( p == NULL )
+		return NULL;
+	else return p;
+}
+
+/* 로그인 함수 */
+int login()
+{
+	fileOpen();
+
+	printf("사용자의 비밀번호를 입력하세요: ");
+	gets(inputPassword);
+	
+	while( isValidPassword() == FALSE ) 
+	{		
+		printf("비밀번호는 네 자리로 입력해주세요\n\n");
+		printf("사용자의 비밀번호를 입력하세요: ");
+		gets(inputPassword); 
+	}
+
+	if( strcmp(buff,inputPassword) != 0 )
+	{
+		printf("비밀번호가 일치하지 않습니다.\n\n");
+		return FALSE;
+	}
+	else return TRUE;
+}
+
+/* 비밀번호의 자릿수가 유효한지 검사하는 함수 */
+int isValidPassword()
+{
+	int isValid;
+
+	if( strlen(inputPassword) != PASSWORD_SIZE )
+		isValid = FALSE;
+	else isValid = TRUE;
+
+	return isValid;
+}
+
+void linkedListInit()
+{
+	head = (Node *)malloc(sizeof(Node*));
+
+	head = NULL;
+}
+
+/* 저장된 연락처를 정렬하는 함수
+	tempNode : 현재 정렬하고자 하는 Node
+	searchNode : tempNode의 뒤에 정렬되어야 하는 Node
+	searchPreNode : tempNode의 앞에 정렬되어야 하는 Node
+	*/
+void sortContacts(Node *tempNode)		
+{
+	Node *searchNode;					
+	Node *searchPreNode;				
+	int lastNameCompare;
+	int firstNameCompare;
+	
+	searchNode = searchPreNode = head;
+
+	while( searchNode != NULL )	/* searchNode와 tempNode를 비교해서 성공하면 탈출 */
+	{	
+		lastNameCompare = strcmp(searchNode->tContact.lastName,tempNode->tContact.lastName);
+		firstNameCompare = strcmp(searchNode->tContact.firstName,tempNode->tContact.firstName);
+		
+		if( lastNameCompare > 0) break;
+		else if( lastNameCompare == 0 && firstNameCompare > 0 ) break;
+		else
+		{
+			searchPreNode = searchNode;
+			searchNode = searchNode->next;
+		}
+	}
+
+	if( searchNode == head )	/* tempNode가 가장 앞에 와야 할 경우 */
+	{
+		tempNode->next = head;
+		head = tempNode;
+	}
+	else if( searchNode == NULL )	/* tempNode가 가장 뒤에 와야 할 경우 */
+	{
+		searchPreNode->next = tempNode;
+		tempNode->next = NULL;
+	}
+	else						/* tempNode가 중간에 위치할 경우 */
+	{
+		tempNode->next = searchNode;
+		searchPreNode->next = tempNode;
+	}
+}
+
+/* 저장된 모든 연락처 정보를 출력하는 함수*/
+void viewAllContacts()
+{
+	Node *tempNode;
+	int k = 1;
+
+	tempNode = head;
+
+	system("cls");
+	if( isEmpty() == TRUE )
+	{
+		printf("\n고객 정보가 존재하지 않습니다.\n");
+		Sleep(1000);
+		return ;
+	}
+	else
+	{
+		printf("----------------------------------\n");
+		printf("번호 성\t이름\t휴대전화번호\n");
+		while( tempNode != NULL )
+		{
+			printf(" %d %4s %4s %14s\n", k++, tempNode->tContact.lastName, tempNode->tContact.firstName, tempNode->tContact.mobilePhone);
+			tempNode = tempNode->next;
+		}
+		printf("----------------------------------\n");
+	}	
+	
+	printf("\n메뉴 화면으로 돌아가려면 아무 키나 눌러주세요.");
+	getch();
+}
+
+/* 연락처를 저장하는 함수
+	inputNode : 저장하고자 하는 내용을 입력받는 Node를 가리키는 Node Pointer*/
+void addContact()
+{
+	Node *inputNode;
+	char temp;
+
+	inputNode = isFull();
+
+	if( inputNode == NULL )
+	{
+		printf("더 이상 저장할 공간이 없습니다.\n");
+		system("cls");
+	}
+
+	system("cls");
+	printf("주소록 추가\n");
+	printf("----------------------------------\n");
+	printf("1. 성 : "); gets(inputNode->tContact.lastName);
+	printf("2. (성 제외) 이름 : "); gets(inputNode->tContact.firstName);
+	printf("3. 직책 : "); gets(inputNode->tContact.position);
+	printf("4. 부서 : "); gets(inputNode->tContact.department);
+	printf("5. 회사명 : "); gets(inputNode->tContact.company);
+	printf("6. 주소 : "); gets(inputNode->tContact.address);
+	printf("7. 전화번호 : "); gets(inputNode->tContact.homePhone);
+	printf("8. 팩스번호 : "); gets(inputNode->tContact.faxNumber);
+	printf("9. 휴대전화번호 : "); gets(inputNode->tContact.mobilePhone);
+	printf("10. E-mail : "); gets(inputNode->tContact.email);
+	printf("11. 홈페이지 : "); gets(inputNode->tContact.homepage);
+	printf("----------------------------------\n\n");
+
+	printf("정말로 등록하시겠습니까? (y/n) : ");
+	temp = getch();
+
+	if( temp == 'y' || temp == 'Y' )
+	{
+		if( isEmpty() == TRUE )	/* 처음으로 연락처를 입력하는 경우. 현재 저장된 연락처가 한 개도 없는 경우 */
+		{
+			head = inputNode;
+			inputNode->next = NULL;
+		}
+		else	/* 입력받은 연락처를 이름순으로 정렬하여 저장 */
+		{
+			sortContacts(inputNode);
+		}
+
+		system("cls");
+		printf("\n등록이 정상적으로 완료되었습니다.\n");
+	}
+	else
+	{
+		free(inputNode);
+		system("cls");
+		printf("등록을 취소했습니다.\n");
+	}
+
+	Sleep(1000);
+}
+
+/* 입력된 연락처의 세부항목 중 하나의 내용을 삭제하는 함수
+   연락처 수정시 올바른 정보의 입력을 위해 필요 */
+void deleteField(Node *tempNode, int fieldNum)
+{
+	int i=0;
+
+	switch(fieldNum)
+	{
+	case 1:
+		for(i=0; i<LASTNAME_SIZE; i++)
+			tempNode->tContact.lastName[i] = '\0';
+		break;
+	case 2:
+		for(i=0; i<FIRSTNAME_SIZE; i++)
+			tempNode->tContact.firstName[i] = '\0';
+		break;
+	case 3:
+		for(i=0; i<POSITION_SIZE; i++)
+			tempNode->tContact.position[i] = '\0';
+		break;
+	case 4:
+		for(i=0; i<DEPARTMENT_SIZE; i++)
+			tempNode->tContact.position[i] = '\0';
+		break;
+	case 5:
+		for(i=0; i<COMPANY_SIZE; i++)
+			tempNode->tContact.company[i] = '\0';
+		break;
+	case 6:
+		for(i=0; i<ADDRESS_SIZE; i++)
+			tempNode->tContact.address[i] = '\0';
+		break;
+	case 7:
+		for(i=0; i<HOMEPHONE_SIZE; i++)
+			tempNode->tContact.homepage[i] = '\0';
+		break;
+	case 8:
+		for(i=0; i<FAXNUMBER_SIZE; i++)
+			tempNode->tContact.faxNumber[i] = '\0';
+		break;
+	case 9:
+		for(i=0; i<MOBILE_SIZE; i++)
+			tempNode->tContact.mobilePhone[i] = '\0';
+		break;
+	case 10:
+		for(i=0; i<EMAIL_SIZE; i++)
+			tempNode->tContact.email[i] = '\0';
+		break;
+	case 11:
+		for(i=0; i<HOMEPAGE_SIZE; i++)
+			tempNode->tContact.homepage[i] = '\0';
+		break;
+	}
+}
+
+/* 연락처를 수정하는 함수
+	searchPreNode : 수정하고자 하는 연락처의 앞에 위치한 Node
+	searchNode : 수정하고자 하는 연락처의 Node
+	isMatch : 수정하고자 하는 이름이 존재하는지 검사한 결과값을 저장하기 위한 변수
+*/
+void modifyContact()
+{
+	Node *searchPreNode;
+	Node *searchNode;
+	Contact modifyContact;
+	int isMatch;
+	char lName[LASTNAME_SIZE];	/* 사용자가 입력할 성을 저장하는 문자배열 */
+	char fName[FIRSTNAME_SIZE];	/* 사용자가 입력할 이름을 저장하는 문자배열 */
+	int lastNameCompare;
+	int firstNameCompare;
+	int checkedNum = 0;
+	char temp;
+
+	system("cls");
+
+	searchPreNode = searchNode = head;
+	isMatch = searchName();
+
+	if( isMatch == FALSE ) return ;
+
+	printf("\n출력된 항목 중 수정하고자 하는 이름을 입력하세요.\n");
+	printf("(단, 성과 이름을 구분해서 입력. 예: 강 하나)\n");
+
+	scanf("%s",lName);
+	scanf("%s",fName);
+
+	while( searchNode != NULL )	/* searchNode와 입력받은 이름을 비교하고 일치하는 결과가 있으면 탈출 */
+	{
+		lastNameCompare = strcmp(searchNode->tContact.lastName,lName);
+		firstNameCompare = strcmp(searchNode->tContact.firstName,fName);
+
+		if( lastNameCompare == 0 && firstNameCompare == 0 ) break;
+		else { searchPreNode = searchNode; searchNode = searchNode->next; }
+	}
+	
+	if( lastNameCompare !=0 || firstNameCompare != 0 )
+	{
+		printf("\n잘못 입력하셨습니다.\n");
+		Sleep(1000);
+		return ;
+	}
+	system("cls");
+
+	printf("어떤 항목을 수정하겠습니까?\n");
+	printf("1. 성\n2. (성 제외) 이름\n3. 직책\n4. 부서\n5. 회사명\n6. 주소\n7. 전화번호\n");
+	printf("8. 팩스번호\n9. 휴대전화번호\n10. E-mail\n11. 홈페이지\n");
+	scanf("%d",&checkedNum);
+
+	/* checkedNum : 수정하고자 하는 항목번호. 만약 성이나 이름을 바꾸고자 하면 연락처를 다시 정렬 */
+	switch(checkedNum)
+	{
+	case 1:
+		printf("1. 성 : ");
+		scanf("%s",modifyContact.lastName);
+		break;
+
+	case 2:
+  	printf("2. (성 제외) 이름 : ");
+		scanf("%s",modifyContact.firstName);
+		break;
+
+	case 3:
+		printf("3. 직책 : ");
+		scanf("%s",modifyContact.position);
+		break;
+
+	case 4:
+		printf("4. 부서 : ");
+		scanf("%s",modifyContact.department);
+		break;
+
+	case 5:
+		printf("5. 회사명 : ");
+		scanf("%s",modifyContact.company);
+		break;
+
+	case 6:
+		printf("6. 주소 : ");
+		scanf("%s",modifyContact.address);
+		break;
+		
+	case 7:
+		printf("7. 전화번호 : ");
+		scanf("%s",modifyContact.homePhone);
+		break;
+
+	case 8:
+		printf("8. 팩스번호 : ");
+		scanf("%s",modifyContact.faxNumber);
+		break;
+
+	case 9:
+		printf("9. 휴대전화번호 : ");
+		scanf("%s",modifyContact.mobilePhone);
+		break;
+
+	case 10:
+		printf("10. E-mail : ");
+		scanf("%s",modifyContact.email);
+		break;
+
+	case 11:
+		printf("11. 홈페이지 : ");
+		scanf("%s",modifyContact.homepage);
+		break;
+
+	default:
+		printf("\n잘못 입력하셨습니다.");
+		Sleep(1000);
+		return ;
+	}
+		
+	printf("정말로 수정하시겠습니까? (y/n) : ");
+	temp = getch();
+
+	if( temp == 'Y' || temp == 'y' )
+	{
+		switch(checkedNum) {
+		case 1:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum); /* 현재 저장된 세부정보 삭제 */
+			if( searchNode == head ) head = searchNode->next;	
+			else if( searchNode->next == NULL ) searchPreNode->next = NULL;	
+			searchPreNode->next = searchNode->next;
+			strcpy(searchNode->tContact.lastName,modifyContact.lastName);
+			sortContacts(searchNode);	/* 연락처 재정렬 */
+			break;
+
+		case 2:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			if( searchNode == head ) head = searchNode->next;
+			else if( searchNode->next == NULL ) searchPreNode->next = NULL;
+			searchPreNode->next = searchNode->next;
+			strcpy(searchNode->tContact.firstName,modifyContact.firstName);
+			sortContacts(searchNode);
+			break;
+	
+		case 3:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.position,modifyContact.position);
+			break;
+	
+		case 4:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.department,modifyContact.department);
+			break;
+	
+		case 5:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.company,modifyContact.company);
+			break;
+	
+		case 6:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.address,modifyContact.address);
+			break;
+	
+		case 7:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.homePhone,modifyContact.homePhone);
+			break;
+	
+		case 8:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.faxNumber,modifyContact.faxNumber);
+			break;
+	
+		case 9:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);	
+			strcpy(searchNode->tContact.mobilePhone,modifyContact.mobilePhone);
+			break;
+	
+		case 10:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.email,modifyContact.email);
+			break;
+	
+		case 11:
+			fflush(stdin);
+			deleteField(searchNode, checkedNum);
+			strcpy(searchNode->tContact.homepage,modifyContact.homepage);
+			break;
+		}
+	
+		system("cls");
+		printf("\n수정이 정상적으로 완료되었습니다.\n");
+	}
+	else
+	{
+		system("cls");
+		printf("\n수정을 취소하였습니다.\n");
+	}
+
+	Sleep(1000);
+}
+
+/* 연락처를 삭제하는 함수
+	searchPreNode : 수정하고자 하는 연락처의 앞에 위치한 Node
+	searchNode : 수정하고자 하는 연락처의 Node
+	isMatch : 수정하고자 하는 이름이 존재하는지 검사한 결과값을 저장하기 위한 변수
+*/
+void deleteContact()
+{
+	Node *searchPreNode;
+	Node *searchNode;
+	Node *tempNode;
+	int isMatch;
+	char lName[LASTNAME_SIZE];
+	char fName[FIRSTNAME_SIZE];
+	int lastNameCompare;
+	int firstNameCompare;
+	int checkedNum = 0;
+	char temp;
+
+	system("cls");
+
+	searchPreNode = searchNode = head;
+
+	if( isEmpty() == TRUE )
+	{
+		printf("\n고객 정보가 존재하지 않습니다. \n");
+		Sleep(1000);
+		return ;
+	}
+
+	printf("1. 이름으로 삭제\n2. 전체 삭제\n");
+	scanf("%d", &checkedNum);
+	
+	if( checkedNum != 1 && checkedNum != 2 )
+	{
+		printf("\n잘못 입력하셨습니다.\n");
+		Sleep(1000);
+		return ;
+	}
+
+	if( checkedNum == 1)	/* 하나의 항목만 삭제할 경우. 원하는 이름을 입력받는 과정*/
+	{
+		isMatch = searchName();
+		if( isMatch == FALSE ) return ;
+		else
+		{
+			printf("\n출력된 항목 중 삭제하고자 하는 이름을 입력하세요\n");
+			printf("(단, 성과 이름을 구분해서 입력. 예: 강 하나)\n");
+
+			scanf("%s",lName);
+			scanf("%s",fName);
+
+			while( searchNode != NULL )
+			{
+				lastNameCompare = strcmp(searchNode->tContact.lastName,lName);
+				firstNameCompare = strcmp(searchNode->tContact.firstName,fName);
+
+				if( lastNameCompare == 0 && firstNameCompare == 0 ) break;
+				else { searchPreNode = searchNode; searchNode = searchNode->next; }
+			}
+
+			if( lastNameCompare !=0 || firstNameCompare != 0 )
+			{
+				printf("\n잘못 입력하셨습니다.\n");
+				Sleep(1000);
+				return ;
+			}
+		}
+	}
+
+	printf("정말로 삭제하시겠습니까? (y/n) : ");
+	temp = getch();
+
+	if( temp == 'Y' || temp == 'y' )
+	{
+		if( checkedNum == 1 ) /* 입력받은 이름에 대한 연락처 하나만 삭제 */
+		{
+			if( searchNode == head ) head = searchNode->next;
+			else if( searchNode->next == NULL ) searchPreNode->next = NULL;
+			searchPreNode->next = searchNode->next;
+			free(searchNode);
+			system("cls");
+			printf("\n삭제가 정상적으로 완료되었습니다.\n");
+		}
+		else if( checkedNum == 2 )	/* 전체 연락처 삭제 */
+		{
+			tempNode = head;
+			while( tempNode != NULL ) 
+			{
+				head = head->next;
+				free(tempNode);
+				tempNode = head;
+			}
+
+			system("cls");
+			printf("\n삭제가 정상적으로 완료되었습니다.\n");
+		}
+	}
+	else
+	{
+		system("cls");
+		printf("\n삭제를 취소했습니다.\n");
+	}
+
+	Sleep(1000);
+}
+
+/* 연락처를 검색하는 함수
+	searchPreNode : 수정하고자 하는 연락처의 앞에 위치한 Node
+	searchNode : 수정하고자 하는 연락처의 Node
+	isMatch : 수정하고자 하는 이름이 존재하는지 검사한 결과값을 저장하기 위한 변수
+*/
+void searchContact()
+{
+	
+	Node *searchPreNode;
+	Node *searchNode;
+	int isMatch;
+	char lName[LASTNAME_SIZE];
+	char fName[FIRSTNAME_SIZE];
+	int lastNameCompare;
+	int firstNameCompare;
+
+	system("cls");
+
+	if( isEmpty() == TRUE )
+	{
+		printf("\n고객 정보가 존재하지 않습니다.\n");
+	}
+
+	searchPreNode = searchNode = head;
+	isMatch = searchName();
+
+	if( isMatch == FALSE ) return ;
+
+	printf("\n상세 정보 확인을 위한 이름을 입력하세요.\n");
+	printf("(단, 성과 이름을 구분해서 입력. 예: 강 하나)\n");
+
+	scanf("%s",lName);
+	scanf("%s",fName);
+
+	while( searchNode != NULL )
+	{
+		lastNameCompare = strcmp(searchNode->tContact.lastName,lName);
+		firstNameCompare = strcmp(searchNode->tContact.firstName,fName);
+
+		if( lastNameCompare == 0 && firstNameCompare == 0 ) break;
+		else { searchPreNode = searchNode; searchNode = searchNode->next; }
+	}
+	
+	if( lastNameCompare !=0 && firstNameCompare != 0 )
+	{
+		printf("\n잘못 입력하셨습니다.\n");
+		Sleep(1000);
+		return ;
+	}
+
+	system("cls");
+	
+	printf("---------%s%s님의 상세정보---------\n",lName,fName);
+	printf("1. 성 : %s\n",searchNode->tContact.lastName);
+	printf("2. (성 제외)이름 : %s\n",searchNode->tContact.firstName);
+	printf("3. 직책 : %s\n",searchNode->tContact.position);
+	printf("4. 부서 : %s\n",searchNode->tContact.department);
+	printf("5. 회사명 : %s\n",searchNode->tContact.company);
+	printf("6. 주소 : %s\n",searchNode->tContact.address);
+	printf("7. 전화번호 : %s\n",searchNode->tContact.homePhone);
+	printf("8. 팩스번호 : %s\n",searchNode->tContact.faxNumber);
+	printf("9. 휴대전화번호 : %s\n",searchNode->tContact.mobilePhone);
+	printf("10. E-mail : %s\n",searchNode->tContact.email);
+	printf("11. 홈페이지 : %s\n",searchNode->tContact.homepage);
+	printf("----------------------------------\n");
+
+	printf("메뉴 화면으로 돌아가려면 아무 키나 눌러주세요.");
+	getch();
+}
+
+/* 사용자가 입력한 글자를 포함한 이름을 검색하여 결과를 출력하는 함수 */
+int searchName()
+{
+	Node *searchNode;
+	char name[FIRSTNAME_SIZE+LASTNAME_SIZE], joinedName[FIRSTNAME_SIZE+LASTNAME_SIZE];
+	int lastNameCompare;
+	char *nameCompare = NULL;
+	int result = FALSE;
+	int i;
+	
+	system("cls");
+
+	searchNode = head;
+	for(i=0; i<FIRSTNAME_SIZE+LASTNAME_SIZE; i++)
+		name[i] = '\0';
+
+	if( isEmpty() == TRUE )
+	{
+		printf("\n고객 정보가 존재하지 않습니다. \n");
+		result = FALSE;
+		Sleep(1000);
+		return result;
+	}
+
+	printf("찾고자 하는 이름을 입력하세요 : ");
+	scanf("%s",name);
+
+	printf("\n%s을(를) 포함하는 명단은 ",name);
+	while( searchNode != NULL )		/* 입력받은 글자를 포함하는 이름을 검색 */
+	{	
+		strcpy(joinedName,searchNode->tContact.lastName);
+		strcat(joinedName,searchNode->tContact.firstName);	
+		nameCompare = strstr(joinedName, name);
+		if( nameCompare != NULL ) /* 성이나 이름에 입력받은 글자가 포함될 경우 */
+		{
+			result = TRUE;
+			printf("\n\t\t%s %s", searchNode->tContact.lastName, searchNode->tContact.firstName);
+		}
+		searchNode = searchNode->next; 
+	}
+	
+	if(result == TRUE) printf("\n입니다.\n");
+	
+	else if( searchNode == NULL && result == FALSE )
+	{
+		printf("존재하지 않습니다.");
+		Sleep(1000);
+		result = FALSE;
+	}
+	
+	return result;
+}
+
+/* 비밀번호를 변경하는 함수 */
+void changePassword()
+{
+	char input1[PASSWORD_SIZE+1], input2[PASSWORD_SIZE+1];
+	int i=0;
+
+	system("cls");
+	
+	printf("현재 비밀번호를 입력하세요 : ");
+	gets(inputPassword);
+
+	while( isValidPassword() == FALSE ) {
+		printf("비밀번호는 네 자리로 입력해주세요\n");
+		printf("사용자의 비밀번호를 입력하세요: ");
+		gets(inputPassword); }
+
+	if( strcmp(buff,inputPassword) != 0 ) {
+		printf("비밀번호가 일치하지 않습니다.\n");
+		Sleep(1000);
+		return ;}
+
+	printf("1. 비밀번호 입력(4자리) : ");
+	gets(input1);
+	printf("2. 비밀번호 확인(4자리) : ");
+	gets(input2);
+
+	if(strcmp(input1,input2) != 0) {
+		printf("입력하신 두 비밀번호가 일치하지 않습니다.\n");
+		Sleep(1000);
+		return ;}
+	else {
+		printf("%s를 비밀번호로 설정합니다.\n",input1);
+		for(i=0; i<PASSWORD_SIZE; i++)
+			buff[i] = input1[i];
+		Sleep(1000);
+	}
+}
+
+/* 홈 화면으로 돌아가기 위한 로그아웃 함수 */
+void logout()
+{
+	system("cls");
+	printf("\n로그아웃 되었습니다.\n사용해 주셔서 감사합니다.");
+	saveContacts();
+	fclose(fp);
+	Sleep(2000);
+	system("cls");
+}
+
+int printMainMenu()
+{
+	int menuChoice;
+
+	system("cls");
+	printf("메인 메뉴\n");
+	printf("----------------------------------\n");
+	printf("1. 주소록 전체보기\n");
+	printf("2. 주소록 추가\n");
+	printf("3. 주소록 수정\n");
+	printf("4. 주소록 삭제\n");
+	printf("5. 주소록 검색\n");
+	printf("6. 비밀번호 변경\n");
+	printf("7. 로그아웃\n");
+	printf("8. 종료\n");
+	printf("----------------------------------\n\n");
+	printf("번호를 입력하세요(1~8) : ");
+	scanf("%d", &menuChoice);
+	fflush(stdin); //버퍼 삭제
+	return menuChoice;
+}
+void fileOpen(void)
+{
+	buff = (char*)malloc(sizeof(char)*PASSWORD_SIZE);
+
+	fp = fopen("Address_Book.txt","r+");
+
+	if( fp == NULL )
+	{
+		printf("일치하는 파일이 없습니다.\n");
+		Sleep(1000);
+		exit(1);
+	}
+
+	fgets(buff, sizeof(char)*(PASSWORD_SIZE+1), fp);
+}
+
+void saveContacts()
+{
+	Node *temp;
+	temp = head;
+
+	fprintf(fp, "\n");
+
+	while( temp != NULL )
+	{
+		fprintf(fp, "%s/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s\n", temp->tContact.lastName, temp->tContact.firstName,
+			temp->tContact.position, temp->tContact.department, temp->tContact.company, temp->tContact.address,
+			temp->tContact.homePhone, temp->tContact.faxNumber, temp->tContact.mobilePhone, temp->tContact.email,
+			temp->tContact.homepage);
+		temp = temp->next;
+	}
+}
+
+
+// 저장되어있는 전화부 힙영역에 넣는건데 파일아이오 어렵당 ㅠㅠㅠㅠ
+
+/*
+void loadContacts()
+{
+	Node *temp;
+	char information[MAX_INFORM_SIZE];
+	char *token = NULL;
+	int strLength = 0;
+	Contact *pContact = (Contact*)malloc(sizeof(Contact));
+	int i;
+	
+	for(i=0; i<MAX_INFORM_SIZE; i++)
+		information[i] = '\0';
+
+	head = isFull();
+	temp = head;
+	while( !feof(fp) )
+	{printf("K");
+		fscanf(fp, "%s", information);
+		puts(information);
+		printf("o");
+		strcpy(temp->tContact.lastName, strtok(information, "/"));
+		strLength += strlen(temp->tContact.lastName);
+		strcpy(temp->tContact.firstName, strtok(NULL, "/"));
+		strLength += strlen(temp->tContact.firstName);
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.position, strtok(NULL, "/"));
+		else strcpy(temp->tContact.position, "\n");
+		strLength += strlen(temp->tContact.position);
+		printf("o");
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.department, strtok(NULL, "/"));
+		else strcpy(temp->tContact.department, "\n");
+		strLength += strlen(temp->tContact.department);
+
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.company, strtok(NULL, "/"));
+		else strcpy(temp->tContact.company, "\n");
+		strLength += strlen(temp->tContact.company);
+		
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.address, strtok(NULL, "/"));
+		else strcpy(temp->tContact.address, "\n");
+		strLength += strlen(temp->tContact.address);
+
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.homePhone, strtok(NULL, "/"));
+		else strcpy(temp->tContact.homePhone, "\n");
+		printf("o");
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.faxNumber, strtok(NULL, "/"));
+		else strcpy(temp->tContact.faxNumber, "\n");
+
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.mobilePhone, strtok(NULL, "/"));
+		else strcpy(temp->tContact.mobilePhone, "\n");
+		strLength += strlen(temp->tContact.mobilePhone);
+
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.homepage, strtok(NULL, "/"));
+		else strcpy(temp->tContact.homepage, "\n");
+		strLength += strlen(temp->tContact.homepage);
+
+		token = strtok(NULL, "/");
+		if(token != NULL)
+			strcpy(temp->tContact.email, strtok(NULL, "/"));
+		else strcpy(temp->tContact.email, "\n");
+		strLength += strlen(temp->tContact.email);
+		printf("o");
+		temp->next = isFull();printf("o");
+		temp = temp->next;printf("o");
+		fgetc(fp);
+	}	
+	temp->next = NULL;
+}*/
+
+int main(void)
+{
+	int menuChoice = 0;
+
+label :
+	printf("주소록 시스템에 오신걸 환영합니다.\n\n");
+
+	do { loginState = login(); }while( loginState == FALSE );
+
+	printf("로그인에 성공하였습니다!\n\n");
+	Sleep(1000);
+	
+	linkedListInit();	//연결리스트 초기화
+	loadContacts();
+	
+	while( loginState == TRUE && menuChoice != 8 ) 
+	{
+		menuChoice = printMainMenu();
+		if(!(menuChoice >=1 && menuChoice <=8))
+		{
+			printf("\n잘못 입력하셨습니다.\n");
+			Sleep(1000);
+			continue;
+		}
+		
+		switch(menuChoice) 
+		{
+		case 1: 
+		  viewAllContacts(); //주소록 전체보기
+		  break;
+		case 2: 
+		  addContact(); //주소록 추가
+		  break;
+		case 3: 
+		  modifyContact(); //주소록 수정
+		  break;
+		case 4: 
+		  deleteContact(); //주소록 삭제
+		  break;
+		case 5: 
+		  searchContact(); //주소록 검색
+		  break;
+		case 6: 
+		  changePassword(); //비밀번호 변경
+		  break;
+		case 7: 
+		  logout(); //로그아웃
+		  goto label;
+		  break;
+		case 8: 
+		  exit(1); //종료
+		  break;			
+		}
+	}
+
+	return 0;
+}
